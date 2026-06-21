@@ -42,8 +42,37 @@ hermite_coefs <- function(param, k, family){
     }))}))
 
   } else if (family == "Ordinal"){
+    if (length(prob) != 3) {
+      stop("For Ordinal family, param must be c(p0, p1, p2).", call. = FALSE)
+    }
 
+    if (any(prob < 0) || abs(sum(prob) - 1) > 1e-8) {
+      stop("For Ordinal family, probabilities must be nonnegative and sum to 1.", call. = FALSE)
+    }
 
+    q <- c(
+      qnorm(prob[1]),
+      qnorm(prob[1] + prob[2])
+    )
+
+    g <- unlist(lapply(seq_len(k), function(i) {
+
+      her <- as.function(Polys[[i]])
+
+      coef <- sum(sapply(q, function(q0) {
+
+        if (!is.finite(q0)) {
+          return(0)
+        }
+
+        hk <- her(q0)
+
+        exp(-q0^2 / 2) * hk / (sqrt(2 * pi) * factorial(i))
+      }))
+
+      return(coef)
+    }))
+    
 
   } else if (family == "Gaussian"){
     g <- numeric(k)
