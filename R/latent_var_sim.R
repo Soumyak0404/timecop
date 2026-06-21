@@ -272,15 +272,39 @@ latent_var_sim <- function(d, n, p, param, phi_lv, family,
   for (i in 1:d){
     # allow for different marginals
     if (family[[i]] == "Bernoulli"){
+
       Thrs <- qnorm(1 - param[[i]])
-      X_t[i,] <- ( Z_t[i,] > Thrs )*1
+
+      X_t[i,] <- (Z_t[i,] > Thrs) * 1
 
     } else if (family[[i]] == "Poisson"){
+
       X_t[i,] <- qpois(pnorm(Z_t[i,]), param[[i]])
 
-    } else if (family[[i]] == "Gaussian"){
-      X_t[i,] <- Z_t[i,]
+    } else if (family[[i]] == "Ordinal"){
 
+      prob <- param[[i]]
+
+      if (length(prob) != 3) {
+        stop("For Ordinal family, param[[i]] must be c(p0, p1, p2).", call. = FALSE)
+      }
+
+      if (any(prob < 0) || abs(sum(prob) - 1) > 1e-8) {
+        stop("For Ordinal family, probabilities must be nonnegative and sum to 1.", call. = FALSE)
+      }
+
+      Thrs <- c(
+        qnorm(prob[1]),
+        qnorm(prob[1] + prob[2])
+      )
+
+      X_t[i,] <- 0
+      X_t[i, Z_t[i,] > Thrs[1]] <- 1
+      X_t[i, Z_t[i,] > Thrs[2]] <- 2
+
+    } else if (family[[i]] == "Gaussian"){
+
+      X_t[i,] <- Z_t[i,]
     }
   }
 
@@ -334,3 +358,4 @@ latent_var_sim <- function(d, n, p, param, phi_lv, family,
   return(output)
 
 }
+
